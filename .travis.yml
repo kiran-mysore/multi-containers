@@ -1,0 +1,26 @@
+sudo: required
+services:
+  - docker
+
+before_install:
+  - docker build -t kmysore/react-test -f ./client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true kmysore/react-test npm run test -- --watchAll=false
+
+after_success:
+  - docker build -t kmysore/multi-client ./client
+  - docker build -t kmysore/multi-nginx ./nginx
+  - docker build -t kmysore/multi-server ./server
+  - docker build -t kmysore/multi-worker ./worker
+
+  # Login to docker Hub
+  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_ID" --password-stdin
+
+  # Take all the freshly built images and push them to Docker Hub
+  - docker push kmysore/multi-client
+  - docker push kmysore/multi-nginx
+  - docker push kmysore/multi-server
+  - docker push kmysore/multi-worker
+
+  # next will be the to deployment.
